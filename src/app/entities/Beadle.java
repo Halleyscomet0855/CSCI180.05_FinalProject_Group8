@@ -11,7 +11,7 @@ public class Beadle {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column
-	private Long StudentPK;
+	private Long BeadlePK;
 
 	@Column
 	private Long IDNumber;
@@ -22,12 +22,12 @@ public class Beadle {
 	@Column
 	private String phoneNumber;
 
-	public Long getStudentPK() {
-		return StudentPK;
+	public Long getBeadlePK() {
+		return BeadlePK;
 	}
 
-	public void setStudentPK(Long studentPK) {
-		StudentPK = studentPK;
+	public void setBeadlePK(Long BeadlePK) {
+		this.BeadlePK = BeadlePK;
 	}
 
 	public Long getIDNumber() {
