@@ -2,12 +2,14 @@ package app.entities;
 
 import java.sql.Date;
 
+import app.entities.Class;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 
 @Entity
@@ -19,9 +21,12 @@ public class Attendance {
 	private Long AttendancePk;
 
 	@ManyToOne(fetch=FetchType.EAGER)
+	@JoinColumn(name = "beadlepk")
 	private Beadle BeadlePk;
+
 	@ManyToOne(fetch=FetchType.EAGER)
-	private Class ClassPk;
+	@JoinColumn(name = "classpk")
+	private app.entities.Class classPk;
 	
 	@Column
 	private Date Date;
@@ -43,11 +48,11 @@ public class Attendance {
 	}
 
 	public Class getClassPk() {
-		return ClassPk;
+		return classPk;
 	}
 
-	public void setClassPk(Class classPk) {
-		ClassPk = classPk;
+	public void setClassPk(Class ClassPk) {
+		classPk = ClassPk;
 	}
 
 	public Date getDate() {

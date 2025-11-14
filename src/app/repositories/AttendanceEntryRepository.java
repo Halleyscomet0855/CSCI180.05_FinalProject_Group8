@@ -11,7 +11,7 @@ import app.entities.AttendanceEntry;
 @Repository
 public interface AttendanceEntryRepository extends JpaRepository<AttendanceEntry, Long>{
 
-	public List<AttendanceEntry> findByAttendanceID(Long AttendanceID);
+	public List<AttendanceEntry> findByAttendancePK(Long AttendanceID);
 
 	public List<AttendanceEntry> findByAttendanceStatus(String status);
 

@@ -15,13 +15,13 @@ public class AttendanceEntry {
 	
 	@ManyToOne
 	@MapsId("studentPK")
-	@JoinColumn(name = "student_id")
+	@JoinColumn(name = "studentpk")
 	private Student studentPK;
 	
 	
 	@ManyToOne
 	@MapsId("attendancePK")
-	@JoinColumn(name = "attendance_pk")
+	@JoinColumn(name = "attendancepk")
 	private Attendance attendancePK;
 	
 	@Column

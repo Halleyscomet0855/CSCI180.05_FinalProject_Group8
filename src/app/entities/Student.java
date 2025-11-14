@@ -15,7 +15,7 @@ public class Student {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column
-  private Long StudentPK;
+  private Long studentPK;
 
   @Column
   private Long IDNumber;
@@ -27,11 +27,11 @@ public class Student {
   private String phoneNumber;
 
   public Long getStudentPK() {
-    return StudentPK;
+    return studentPK;
   }
 
-  public void setStudentPK(Long studentPK) {
-    StudentPK = studentPK;
+  public void setStudentPK(Long StudentPK) {
+    studentPK = StudentPK;
   }
 
   public Long getIDNumber() {

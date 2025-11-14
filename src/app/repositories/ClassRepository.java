@@ -13,7 +13,6 @@ import app.entities.Class;
 @Repository
 public interface ClassRepository extends JpaRepository<Class, Long>{
 
-	public List<Class> findByTime(String Time);
 
 	@Query("SELECT c FROM Class c WHERE c.Time > :currentTime AND c.Time <= :tenMinutesLater")
 	public List<Class> findUpcomingClasses(@Param("currentTime") Timestamp currentTime, @Param("tenMinutesLater") Timestamp tenMinutesLater);

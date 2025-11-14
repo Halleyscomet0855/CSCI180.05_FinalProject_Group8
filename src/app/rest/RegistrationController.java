@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import app.components.StudentComponent;
 import app.entities.Beadle;
+import app.entities.Student;
 import app.repositories.BeadleRepository;
 
 /**

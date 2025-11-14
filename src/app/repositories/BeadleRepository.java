@@ -10,6 +10,6 @@ import app.entities.Beadle;
 @Repository
 public interface BeadleRepository extends JpaRepository<Beadle, Long>{
 
-	public List<Beadle> findByBeadlepk(Long BeadlePK);
+	public List<Beadle> findByBeadlePK(Long BeadlePK);
 
 }
