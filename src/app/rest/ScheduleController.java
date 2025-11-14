@@ -1,11 +1,9 @@
 package app.rest;
 
-import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.ejb.EJB;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -15,28 +13,33 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.springframework.stereotype.Component;
+
 import app.components.MessagingComponent;
 import app.components.SchedulerComponent;
 import app.components.StudentComponent;
 import app.entities.Class;
-import app.entities.Student;
 
 /**
  * REST Controller for Schedule Operations
  */
+@Component
 @Path("/schedule")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class ScheduleController {
 
-	@EJB
-	private StudentComponent studentComponent;
+	private final StudentComponent studentComponent;
+	private final SchedulerComponent schedulerComponent;
+	private final MessagingComponent messagingComponent;
 
-	@EJB
-	private SchedulerComponent schedulerComponent;
-
-	@EJB
-	private MessagingComponent messagingComponent;
+	public ScheduleController(StudentComponent studentComponent,
+			SchedulerComponent schedulerComponent,
+			MessagingComponent messagingComponent) {
+		this.studentComponent = studentComponent;
+		this.schedulerComponent = schedulerComponent;
+		this.messagingComponent = messagingComponent;
+	}
 
 	/**
 	 * Add Class Schedule

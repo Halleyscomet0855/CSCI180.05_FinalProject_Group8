@@ -4,7 +4,6 @@ import java.sql.Date;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import app.entities.Attendance;
@@ -20,20 +19,21 @@ import app.repositories.StudentRepository;
 @Component
 public class BeadleComponent {
 
-	@Autowired
-	private BeadleRepository beadleRepository;
+	private final BeadleRepository beadleRepository;
+	private final ClassRepository classRepository;
+	private final StudentRepository studentRepository;
+	private final AttendanceEntryRepository attendanceEntryRepository;
+	private final AttendanceComponent attendanceComponent;
 
-	@Autowired
-	private ClassRepository classRepository;
-
-	@Autowired
-	private StudentRepository studentRepository;
-
-	@Autowired
-	private AttendanceEntryRepository attendanceEntryRepository;
-
-	@Autowired
-	private AttendanceComponent attendanceComponent;
+	public BeadleComponent(BeadleRepository beadleRepository, ClassRepository classRepository,
+			StudentRepository studentRepository, AttendanceEntryRepository attendanceEntryRepository,
+			AttendanceComponent attendanceComponent) {
+		this.beadleRepository = beadleRepository;
+		this.classRepository = classRepository;
+		this.studentRepository = studentRepository;
+		this.attendanceEntryRepository = attendanceEntryRepository;
+		this.attendanceComponent = attendanceComponent;
+	}
 
 	/**
 	 * Records present students and returns attendancePK

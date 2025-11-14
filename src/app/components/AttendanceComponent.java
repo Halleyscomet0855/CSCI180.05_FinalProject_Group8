@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import app.entities.Attendance;
@@ -20,11 +19,14 @@ import app.repositories.AttendanceRepository;
 @Component
 public class AttendanceComponent {
 
-	@Autowired
-	private AttendanceRepository attendanceRepository;
+	private final AttendanceRepository attendanceRepository;
+	private final AttendanceEntryRepository attendanceEntryRepository;
 
-	@Autowired
-	private AttendanceEntryRepository attendanceEntryRepository;
+	public AttendanceComponent(AttendanceRepository attendanceRepository,
+			AttendanceEntryRepository attendanceEntryRepository) {
+		this.attendanceRepository = attendanceRepository;
+		this.attendanceEntryRepository = attendanceEntryRepository;
+	}
 
 	/**
 	 * Stores attendance record linked to schedule/date

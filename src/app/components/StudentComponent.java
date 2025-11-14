@@ -2,7 +2,6 @@ package app.components;
 
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import app.entities.Student;
@@ -11,8 +10,11 @@ import app.repositories.StudentRepository;
 @Component
 public class StudentComponent {
 
-	@Autowired
-	private StudentRepository studentRepository;
+	private final StudentRepository studentRepository;
+
+	public StudentComponent(StudentRepository studentRepository) {
+		this.studentRepository = studentRepository;
+	}
 
 	/**
 	 * Stores student registration information

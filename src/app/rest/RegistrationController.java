@@ -3,9 +3,6 @@ package app.rest;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.ejb.EJB;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -13,23 +10,29 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.springframework.stereotype.Component;
+
 import app.components.StudentComponent;
 import app.entities.Beadle;
-import app.entities.Student;
+import app.repositories.BeadleRepository;
 
 /**
  * REST Controller for Registration Operations
  */
+@Component
 @Path("/register")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class RegistrationController {
 
-	@EJB
-	private StudentComponent studentComponent;
+	private final StudentComponent studentComponent;
+	private final BeadleRepository beadleRepository;
 
-	@PersistenceContext
-	private EntityManager em;
+	public RegistrationController(StudentComponent studentComponent,
+			BeadleRepository beadleRepository) {
+		this.studentComponent = studentComponent;
+		this.beadleRepository = beadleRepository;
+	}
 
 	/**
 	 * Register Student
@@ -118,14 +121,13 @@ public class RegistrationController {
 					.build();
 			}
 
-			// Create and persist Beadle
+			// Create and persist Beadle using repository
 			Beadle beadle = new Beadle();
 			beadle.setIDNumber(idNumber);
 			beadle.setName(name);
 			beadle.setPhoneNumber(phoneNumber);
 
-			em.persist(beadle);
-			em.flush();
+			beadle = beadleRepository.save(beadle);
 
 			Map<String, Object> response = new HashMap<>();
 			response.put("status", "success");

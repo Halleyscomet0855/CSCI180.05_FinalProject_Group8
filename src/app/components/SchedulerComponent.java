@@ -4,7 +4,6 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import app.entities.Attendance;
@@ -16,17 +15,20 @@ import app.repositories.ClassRepository;
 @Component
 public class SchedulerComponent {
 
-	@Autowired
-	private ClassRepository classRepository;
+	private final ClassRepository classRepository;
+	private final AttendanceRepository attendanceRepository;
+	private final AttendanceEntryRepository attendanceEntryRepository;
+	private final MessagingComponent messagingComponent;
 
-	@Autowired
-	private AttendanceRepository attendanceRepository;
-
-	@Autowired
-	private AttendanceEntryRepository attendanceEntryRepository;
-
-	@Autowired
-	private MessagingComponent messagingComponent;
+	public SchedulerComponent(ClassRepository classRepository,
+			AttendanceRepository attendanceRepository,
+			AttendanceEntryRepository attendanceEntryRepository,
+			MessagingComponent messagingComponent) {
+		this.classRepository = classRepository;
+		this.attendanceRepository = attendanceRepository;
+		this.attendanceEntryRepository = attendanceEntryRepository;
+		this.messagingComponent = messagingComponent;
+	}
 
 	/**
 	 * Scans for classes starting within 10 minutes

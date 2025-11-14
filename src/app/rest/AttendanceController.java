@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.ejb.EJB;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -16,27 +15,32 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.springframework.stereotype.Component;
+
 import app.components.AttendanceComponent;
 import app.components.BeadleComponent;
 import app.components.ProfessorComponent;
-import app.entities.Student;
 
 /**
  * REST Controller for Attendance Operations
  */
+@Component
 @Path("/attendance")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class AttendanceController {
 
-	@EJB
-	private BeadleComponent beadleComponent;
+	private final BeadleComponent beadleComponent;
+	private final AttendanceComponent attendanceComponent;
+	private final ProfessorComponent professorComponent;
 
-	@EJB
-	private AttendanceComponent attendanceComponent;
-
-	@EJB
-	private ProfessorComponent professorComponent;
+	public AttendanceController(BeadleComponent beadleComponent,
+			AttendanceComponent attendanceComponent,
+			ProfessorComponent professorComponent) {
+		this.beadleComponent = beadleComponent;
+		this.attendanceComponent = attendanceComponent;
+		this.professorComponent = professorComponent;
+	}
 
 	/**
 	 * Log Attendance Entry

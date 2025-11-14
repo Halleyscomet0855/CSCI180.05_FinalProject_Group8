@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import app.entities.Attendance;
@@ -19,17 +18,20 @@ import app.repositories.ClassRepository;
 @Component
 public class ProfessorComponent {
 
-	@Autowired
-	private AttendanceRepository attendanceRepository;
+	private final AttendanceRepository attendanceRepository;
+	private final AttendanceEntryRepository attendanceEntryRepository;
+	private final ClassRepository classRepository;
+	private final AttendanceComponent attendanceComponent;
 
-	@Autowired
-	private AttendanceEntryRepository attendanceEntryRepository;
-
-	@Autowired
-	private ClassRepository classRepository;
-
-	@Autowired
-	private AttendanceComponent attendanceComponent;
+	public ProfessorComponent(AttendanceRepository attendanceRepository,
+			AttendanceEntryRepository attendanceEntryRepository,
+			ClassRepository classRepository,
+			AttendanceComponent attendanceComponent) {
+		this.attendanceRepository = attendanceRepository;
+		this.attendanceEntryRepository = attendanceEntryRepository;
+		this.classRepository = classRepository;
+		this.attendanceComponent = attendanceComponent;
+	}
 
 	/**
 	 * Displays logged attendance after class
