@@ -1,16 +1,18 @@
 package app.components;
 
-import javax.ejb.Stateless;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import app.entities.Student;
+import app.repositories.StudentRepository;
 
-@Stateless
+@Component
 public class StudentComponent {
 
-	@PersistenceContext
-	private EntityManager em;
+	@Autowired
+	private StudentRepository studentRepository;
 
 	/**
 	 * Stores student registration information
@@ -25,10 +27,7 @@ public class StudentComponent {
 		student.setName(name);
 		student.setPhoneNumber(phoneNumber);
 
-		em.persist(student);
-		em.flush();
-
-		return student;
+		return studentRepository.save(student);
 	}
 
 	/**
@@ -37,9 +36,10 @@ public class StudentComponent {
 	 * @param message The message content received
 	 */
 	public void receiveMessage(Long studentId, String message) {
-		Student student = em.find(Student.class, studentId);
+		Optional<Student> studentOpt = studentRepository.findById(studentId);
 
-		if (student != null) {
+		if (studentOpt.isPresent()) {
+			Student student = studentOpt.get();
 			// Process the received message
 			// This could trigger various actions based on message content
 			System.out.println("Message received for student " + student.getName() + ": " + message);

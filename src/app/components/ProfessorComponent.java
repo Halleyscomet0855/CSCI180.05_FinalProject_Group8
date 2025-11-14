@@ -1,28 +1,34 @@
 package app.components;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-import javax.ejb.EJB;
-import javax.ejb.Stateless;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.TypedQuery;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import app.entities.Attendance;
 import app.entities.AttendanceEntry;
 import app.entities.Class;
 import app.entities.Student;
+import app.repositories.AttendanceEntryRepository;
+import app.repositories.AttendanceRepository;
+import app.repositories.ClassRepository;
 
-@Stateless
+@Component
 public class ProfessorComponent {
 
-	@PersistenceContext
-	private EntityManager em;
+	@Autowired
+	private AttendanceRepository attendanceRepository;
 
-	@EJB
+	@Autowired
+	private AttendanceEntryRepository attendanceEntryRepository;
+
+	@Autowired
+	private ClassRepository classRepository;
+
+	@Autowired
 	private AttendanceComponent attendanceComponent;
 
 	/**
@@ -31,11 +37,13 @@ public class ProfessorComponent {
 	 * @return Formatted string with attendance details
 	 */
 	public String viewAttendance(Long attendanceId) {
-		Attendance attendance = em.find(Attendance.class, attendanceId);
+		Optional<Attendance> attendanceOpt = attendanceRepository.findById(attendanceId);
 
-		if (attendance == null) {
+		if (!attendanceOpt.isPresent()) {
 			return "Attendance record not found.";
 		}
+
+		Attendance attendance = attendanceOpt.get();
 
 		StringBuilder view = new StringBuilder();
 		view.append("=== Attendance Report ===\n");
@@ -53,13 +61,8 @@ public class ProfessorComponent {
 				.append(" (ID: ").append(student.getIDNumber()).append(")\n");
 		}
 
-		// Get list of absent students
-		TypedQuery<AttendanceEntry> absentQuery = em.createQuery(
-			"SELECT ae FROM AttendanceEntry ae WHERE ae.attendancePK = :attendance AND ae.attendanceStatus != 'Present'",
-			AttendanceEntry.class
-		);
-		absentQuery.setParameter("attendance", attendance);
-		List<AttendanceEntry> absentEntries = absentQuery.getResultList();
+		// Get list of absent students using repository
+		List<AttendanceEntry> absentEntries = attendanceEntryRepository.findByAttendancePKAndAttendanceStatus(attendance, "Absent");
 
 		view.append("\nStudents Absent (").append(absentEntries.size()).append("):\n");
 		for (AttendanceEntry entry : absentEntries) {
@@ -78,37 +81,32 @@ public class ProfessorComponent {
 	 * @return Map of student names to their cut counts
 	 */
 	public Map<String, Integer> generateCutReport(Long classId) {
-		Class classEntity = em.find(Class.class, classId);
+		Optional<Class> classOpt = classRepository.findById(classId);
 
-		if (classEntity == null) {
+		if (!classOpt.isPresent()) {
 			System.out.println("Class not found with ID: " + classId);
 			return new HashMap<>();
 		}
 
-		// Get all attendance records for this class
-		TypedQuery<Attendance> attendanceQuery = em.createQuery(
-			"SELECT a FROM Attendance a WHERE a.ClassPk = :classEntity",
-			Attendance.class
-		);
-		attendanceQuery.setParameter("classEntity", classEntity);
-		List<Attendance> attendanceRecords = attendanceQuery.getResultList();
+		Class classEntity = classOpt.get();
+
+		// Get all attendance records for this class using repository
+		List<Attendance> attendanceRecords = attendanceRepository.findByClassPk(classEntity);
 
 		Map<String, Integer> cutReport = new HashMap<>();
 
 		// For each attendance record, find students who were absent
 		for (Attendance attendance : attendanceRecords) {
-			TypedQuery<AttendanceEntry> absentQuery = em.createQuery(
-				"SELECT ae FROM AttendanceEntry ae WHERE ae.attendancePK = :attendance AND ae.attendanceStatus != 'Present'",
-				AttendanceEntry.class
-			);
-			absentQuery.setParameter("attendance", attendance);
-			List<AttendanceEntry> absentEntries = absentQuery.getResultList();
+			// Get absent entries using repository (any status that is not "Present")
+			List<AttendanceEntry> allEntries = attendanceEntryRepository.findByAttendancePK(attendance);
 
-			// Count cuts for each student
-			for (AttendanceEntry entry : absentEntries) {
-				Student student = entry.getStudentPK();
-				String studentName = student.getName() + " (ID: " + student.getIDNumber() + ")";
-				cutReport.put(studentName, cutReport.getOrDefault(studentName, 0) + 1);
+			// Count cuts for each student who was not present
+			for (AttendanceEntry entry : allEntries) {
+				if (!"Present".equals(entry.getAttendanceStatus())) {
+					Student student = entry.getStudentPK();
+					String studentName = student.getName() + " (ID: " + student.getIDNumber() + ")";
+					cutReport.put(studentName, cutReport.getOrDefault(studentName, 0) + 1);
+				}
 			}
 		}
 

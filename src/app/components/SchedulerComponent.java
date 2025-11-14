@@ -2,24 +2,30 @@ package app.components;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Optional;
 
-import javax.ejb.EJB;
-import javax.ejb.Stateless;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.TypedQuery;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import app.entities.Attendance;
-import app.entities.AttendanceEntry;
 import app.entities.Class;
+import app.repositories.AttendanceEntryRepository;
+import app.repositories.AttendanceRepository;
+import app.repositories.ClassRepository;
 
-@Stateless
+@Component
 public class SchedulerComponent {
 
-	@PersistenceContext
-	private EntityManager em;
+	@Autowired
+	private ClassRepository classRepository;
 
-	@EJB
+	@Autowired
+	private AttendanceRepository attendanceRepository;
+
+	@Autowired
+	private AttendanceEntryRepository attendanceEntryRepository;
+
+	@Autowired
 	private MessagingComponent messagingComponent;
 
 	/**
@@ -33,15 +39,8 @@ public class SchedulerComponent {
 		// Calculate time 10 minutes from now
 		Timestamp tenMinutesLater = new Timestamp(currentTime.getTime() + (10 * 60 * 1000));
 
-		// Query for classes starting within the next 10 minutes
-		TypedQuery<Class> query = em.createQuery(
-			"SELECT c FROM Class c WHERE c.Time > :currentTime AND c.Time <= :tenMinutesLater",
-			Class.class
-		);
-		query.setParameter("currentTime", currentTime);
-		query.setParameter("tenMinutesLater", tenMinutesLater);
-
-		return query.getResultList();
+		// Query for classes starting within the next 10 minutes using repository
+		return classRepository.findUpcomingClasses(currentTime, tenMinutesLater);
 	}
 
 	/**
@@ -73,19 +72,16 @@ public class SchedulerComponent {
 	 * @return Summary string of attendance report
 	 */
 	public String retrieveAttendanceReport(Long classPk) {
-		Class classEntity = em.find(Class.class, classPk);
+		Optional<Class> classOpt = classRepository.findById(classPk);
 
-		if (classEntity == null) {
+		if (!classOpt.isPresent()) {
 			return "Class not found";
 		}
 
-		// Query attendance records for this class
-		TypedQuery<Attendance> attendanceQuery = em.createQuery(
-			"SELECT a FROM Attendance a WHERE a.ClassPk = :classEntity",
-			Attendance.class
-		);
-		attendanceQuery.setParameter("classEntity", classEntity);
-		List<Attendance> attendanceRecords = attendanceQuery.getResultList();
+		Class classEntity = classOpt.get();
+
+		// Query attendance records for this class using repository
+		List<Attendance> attendanceRecords = attendanceRepository.findByClassPk(classEntity);
 
 		StringBuilder report = new StringBuilder();
 		report.append("Attendance Report for: ").append(classEntity.getClassName()).append("\n");
@@ -95,13 +91,8 @@ public class SchedulerComponent {
 		for (Attendance attendance : attendanceRecords) {
 			report.append("\nDate: ").append(attendance.getDate()).append("\n");
 
-			// Count present students for this attendance session
-			TypedQuery<Long> countQuery = em.createQuery(
-				"SELECT COUNT(ae) FROM AttendanceEntry ae WHERE ae.attendancePK = :attendance AND ae.attendanceStatus = 'Present'",
-				Long.class
-			);
-			countQuery.setParameter("attendance", attendance);
-			Long presentCount = countQuery.getSingleResult();
+			// Count present students for this attendance session using repository
+			Long presentCount = attendanceEntryRepository.countByAttendancePKAndAttendanceStatus(attendance, "Present");
 
 			report.append("Students Present: ").append(presentCount).append("\n");
 		}

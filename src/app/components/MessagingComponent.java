@@ -3,12 +3,12 @@ package app.components;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import javax.ejb.Stateless;
+import org.springframework.stereotype.Component;
 
 /**
  * Component for handling messaging operations via Twilio SMS
  */
-@Stateless
+@Component
 public class MessagingComponent {
 
 	// Message queue for storing pending messages

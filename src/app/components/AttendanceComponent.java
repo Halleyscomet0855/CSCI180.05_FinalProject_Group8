@@ -3,23 +3,28 @@ package app.components;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
-import javax.ejb.Stateless;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.TypedQuery;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import app.entities.Attendance;
 import app.entities.AttendanceEntry;
 import app.entities.Beadle;
 import app.entities.Class;
 import app.entities.Student;
+import app.repositories.AttendanceEntryRepository;
+import app.repositories.AttendanceRepository;
 
-@Stateless
+@Component
 public class AttendanceComponent {
 
-	@PersistenceContext
-	private EntityManager em;
+	@Autowired
+	private AttendanceRepository attendanceRepository;
+
+	@Autowired
+	private AttendanceEntryRepository attendanceEntryRepository;
 
 	/**
 	 * Stores attendance record linked to schedule/date
@@ -34,8 +39,7 @@ public class AttendanceComponent {
 		attendance.setClassPk(classEntity);
 		attendance.setDate(date);
 
-		em.persist(attendance);
-		em.flush();
+		attendance = attendanceRepository.save(attendance);
 
 		System.out.println("Attendance record created for class: " + classEntity.getClassName() +
 			" on date: " + date +
@@ -50,27 +54,22 @@ public class AttendanceComponent {
 	 * @return List of students who were present
 	 */
 	public List<Student> getListOfPresentStudents(Long attendanceId) {
-		Attendance attendance = em.find(Attendance.class, attendanceId);
+		Optional<Attendance> attendanceOpt = attendanceRepository.findById(attendanceId);
 
-		if (attendance == null) {
+		if (!attendanceOpt.isPresent()) {
 			System.out.println("Attendance record not found with ID: " + attendanceId);
 			return new ArrayList<>();
 		}
 
-		// Query for all attendance entries with status "Present"
-		TypedQuery<AttendanceEntry> query = em.createQuery(
-			"SELECT ae FROM AttendanceEntry ae WHERE ae.attendancePK = :attendance AND ae.attendanceStatus = 'Present'",
-			AttendanceEntry.class
-		);
-		query.setParameter("attendance", attendance);
+		Attendance attendance = attendanceOpt.get();
 
-		List<AttendanceEntry> entries = query.getResultList();
+		// Query for all attendance entries with status "Present" using repository
+		List<AttendanceEntry> entries = attendanceEntryRepository.findByAttendancePKAndAttendanceStatus(attendance, "Present");
 
 		// Extract the Student entities from the entries
-		List<Student> presentStudents = new ArrayList<>();
-		for (AttendanceEntry entry : entries) {
-			presentStudents.add(entry.getStudentPK());
-		}
+		List<Student> presentStudents = entries.stream()
+			.map(AttendanceEntry::getStudentPK)
+			.collect(Collectors.toList());
 
 		System.out.println("Found " + presentStudents.size() + " present students for attendance ID: " + attendanceId);
 
