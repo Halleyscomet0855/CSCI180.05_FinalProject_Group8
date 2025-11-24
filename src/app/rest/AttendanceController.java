@@ -1,6 +1,7 @@
 package app.rest;
 
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,14 +13,18 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import app.components.AttendanceComponent;
 import app.components.BeadleComponent;
 import app.components.ProfessorComponent;
+import app.entities.Beadle;
+import app.repositories.BeadleRepository;
 
 /**
  * REST Controller for Attendance Operations
@@ -33,6 +38,10 @@ public class AttendanceController {
 	private final BeadleComponent beadleComponent;
 	private final AttendanceComponent attendanceComponent;
 	private final ProfessorComponent professorComponent;
+	
+	@Autowired
+	BeadleRepository beadleRepository;
+
 
 	public AttendanceController(BeadleComponent beadleComponent,
 			AttendanceComponent attendanceComponent,
@@ -41,7 +50,7 @@ public class AttendanceController {
 		this.attendanceComponent = attendanceComponent;
 		this.professorComponent = professorComponent;
 	}
-
+	
 	/**
 	 * Log Attendance Entry
 	 * POST /attendance/log
@@ -120,8 +129,8 @@ public class AttendanceController {
 	 * Error: 404 Not Found, 403 Forbidden
 	 */
 	@GET
-	@Path("/cut-report/{classId}")
-	public Response viewCutClassesReport(@PathParam("classId") Long classId) {
+	@Path("/cut-report")
+	public Response viewCutClassesReport(@QueryParam("classId") Long classId) {
 		try {
 			if (classId == null) {
 				return Response.status(Response.Status.BAD_REQUEST)

@@ -104,7 +104,7 @@ public class ProfessorComponent {
 
 			// Count cuts for each student who was not present
 			for (AttendanceEntry entry : allEntries) {
-				if (!"Present".equals(entry.getAttendanceStatus())) {
+				if ("Present".equals(entry.getAttendanceStatus())) {
 					Student student = entry.getStudentPK();
 					String studentName = student.getName() + " (ID: " + student.getIDNumber() + ")";
 					cutReport.put(studentName, cutReport.getOrDefault(studentName, 0) + 1);

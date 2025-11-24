@@ -16,8 +16,7 @@ public class Class {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column
-	@JoinColumn(name = "classpk")
-	private Long ClassPk ;
+	private Long classPk;
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "beadlepk")
 	private Beadle BeadlePk;
@@ -26,13 +25,13 @@ public class Class {
 	@Column
 	private String ProfessorName;
 	@Column
-	private Timestamp Time;
+	private String Time; //TODO: convert string to time
 	
 	public Long getClassPk() {
-		return ClassPk;
+		return classPk;
 	}
 	public void setClassPk(Long classPk) {
-		ClassPk = classPk;
+		classPk = classPk;
 	}
 	public Beadle getBeadlePk() {
 		return BeadlePk;
@@ -52,10 +51,10 @@ public class Class {
 	public void setProfessorName(String professorName) {
 		ProfessorName = professorName;
 	}
-	public Timestamp getTime() {
+	public String getTime() {
 		return Time;
 	}
-	public void setTime(Timestamp time) {
+	public void setTime(String time) {
 		Time = time;
 	}
 

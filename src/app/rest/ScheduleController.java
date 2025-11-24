@@ -1,5 +1,6 @@
 package app.rest;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,12 +14,18 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import app.components.AttendanceComponent;
+import app.components.BeadleComponent;
 import app.components.MessagingComponent;
 import app.components.SchedulerComponent;
 import app.components.StudentComponent;
+import app.entities.Beadle;
 import app.entities.Class;
+import app.repositories.BeadleRepository;
+import app.repositories.ClassRepository;
 
 /**
  * REST Controller for Schedule Operations
@@ -32,6 +39,18 @@ public class ScheduleController {
 	private final StudentComponent studentComponent;
 	private final SchedulerComponent schedulerComponent;
 	private final MessagingComponent messagingComponent;
+	
+	@Autowired
+	BeadleRepository beadleRepository;
+	
+	@Autowired
+	ClassRepository classRepository;
+	
+	@Autowired
+	AttendanceComponent attendanceComponent;
+	
+	@Autowired
+	BeadleComponent beadleComponent;
 
 	public ScheduleController(StudentComponent studentComponent,
 			SchedulerComponent schedulerComponent,
@@ -41,46 +60,129 @@ public class ScheduleController {
 		this.messagingComponent = messagingComponent;
 	}
 
-	/**
-	 * Add Class Schedule
-	 * POST /schedule/add
-	 * Input: { studentId, classId, dayofweek, startTime, endTime, location }
-	 * Output: { "status": "success", "message": "Schedule added" }
-	 * Error: 400 Bad Request, 404 Not Found
+	/** 
+	 * Add Class List
+	 * Input: {classPK, [studentID]}
+	 * Output: {"status": "success", "message": "Class List added" }
+	 * Error: 400 Bad Request
 	 */
+
 	@POST
-	@Path("/add")
-	public Response addClassSchedule(Map<String, Object> scheduleData) {
+	@Path("/addList")
+	public Response addClassList(Map<String, Object> listData) {
 		try {
 			// Validate input
-			if (scheduleData == null || !scheduleData.containsKey("studentId") ||
-				!scheduleData.containsKey("classId")) {
+			if (listData == null) {
 				return Response.status(Response.Status.BAD_REQUEST)
 					.entity(createErrorResponse("Missing required parameters"))
 					.build();
 			}
 
-			// Extract parameters
-			Long studentId = Long.valueOf(scheduleData.get("studentId").toString());
-			Long classId = Long.valueOf(scheduleData.get("classId").toString());
-			String dayofweek = (String) scheduleData.get("dayofweek");
-			String startTime = (String) scheduleData.get("startTime");
-			String endTime = (String) scheduleData.get("endTime");
-			String location = (String) scheduleData.get("location");
+			// Check if this is a beadle logging attendance for multiple students
+			if (listData.containsKey("classId") &&
+				listData.containsKey("presentStudentIds"))
+			{
 
-			// TODO: Implement schedule enrollment logic
-			// This would require an Enrollment entity or similar
-			// For now, we'll assume the student is registered
+				Long classId = Long.valueOf(listData.get("classId").toString());
+				app.entities.Class classObj = classRepository.findByClassPk(classId);
 
-			Map<String, Object> response = new HashMap<>();
-			response.put("status", "success");
-			response.put("message", "Schedule added");
+				// Parse student IDs
+				List<Long> presentStudentIds = new ArrayList<>();
+				Object studentIdsObj = listData.get("presentStudentIds");
+				if (studentIdsObj instanceof List) {
+					for (Object id : (List<?>) studentIdsObj) {
+						presentStudentIds.add(Long.valueOf(id.toString()));
+					}
+				}
+				
+				int listCount = beadleComponent.addClassList(classObj, presentStudentIds);
 
-			return Response.ok(response).build();
+
+				
+
+				Map<String, Object> response = new HashMap<>();
+				response.put("status", "success");
+				response.put("message", "Class List Created");
+				response.put("number of students", listCount);
+
+				return Response.ok(response).build();
+
+			} else {
+				return Response.status(Response.Status.BAD_REQUEST)
+					.entity(createErrorResponse("Invalid attendance data format"))
+					.build();
+			}
 
 		} catch (NumberFormatException e) {
 			return Response.status(Response.Status.BAD_REQUEST)
-				.entity(createErrorResponse("Invalid student or class ID"))
+				.entity(createErrorResponse("Invalid ID format"))
+				.build();
+		} catch (IllegalArgumentException e) {
+			return Response.status(Response.Status.FORBIDDEN)
+				.entity(createErrorResponse(e.getMessage()))
+				.build();
+		} catch (Exception e) {
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+				.entity(createErrorResponse("Server error: " + e.getMessage()))
+				.build();
+		}
+	}
+
+	/**
+	 * Add Class Schedule
+	 * POST /schedule/add
+	 * Input: { beadleID, className, profName, timestamp }
+	 * Output: { "status": "success", "message": "Schedule added" }
+	 * Error: 400 Bad Request, 404 Not Found
+	 */
+	@POST
+	@Path("/add")
+	public Response addClassSchedule(Map<String, Object> classData) {
+		try {
+			// Validate input
+			if (classData == null) {
+				return Response.status(Response.Status.BAD_REQUEST)
+					.entity(createErrorResponse("Missing required parameters"))
+					.build();
+			}
+
+			// Check if this is a beadle logging attendance for multiple students
+			if (classData.containsKey("beadleId") &&
+				classData.containsKey("className") &&
+				classData.containsKey("profName") &&
+				classData.containsKey("timestamp"))
+			{
+
+
+				Long beadleId = Long.valueOf(classData.get("beadleId").toString());
+				Beadle beadle = beadleRepository.findByBeadlePK(beadleId);
+				
+				String profName = classData.get("profName").toString();
+				String className = classData.get("className").toString();
+				String time = classData.get("timestamp").toString();
+				// Log attendance via BeadleComponent
+				Long classPK = attendanceComponent.createClass(beadle, profName, time, className);
+
+				Map<String, Object> response = new HashMap<>();
+				response.put("status", "success");
+				response.put("message", "Class Created");
+				response.put("attendancePk", classPK);
+
+				return Response.ok(response).build();
+
+			} else {
+				return Response.status(Response.Status.BAD_REQUEST)
+					.entity(createErrorResponse("Invalid attendance data format"))
+					.build();
+			}
+
+		} catch (NumberFormatException e) {
+			return Response.status(Response.Status.BAD_REQUEST)
+				.entity(createErrorResponse("Invalid ID format"))
+				.build();
+		} catch (IllegalArgumentException e) {
+			return Response.status(Response.Status.FORBIDDEN)
+				.entity(createErrorResponse(e.getMessage()))
 				.build();
 		} catch (Exception e) {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR)

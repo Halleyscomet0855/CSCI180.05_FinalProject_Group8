@@ -4,15 +4,18 @@ import java.sql.Date;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import app.entities.Attendance;
 import app.entities.AttendanceEntry;
 import app.entities.Beadle;
 import app.entities.Class;
+import app.entities.ClassEntry;
 import app.entities.Student;
 import app.repositories.AttendanceEntryRepository;
 import app.repositories.BeadleRepository;
+import app.repositories.ClassEntryRepository;
 import app.repositories.ClassRepository;
 import app.repositories.StudentRepository;
 
@@ -24,6 +27,9 @@ public class BeadleComponent {
 	private final StudentRepository studentRepository;
 	private final AttendanceEntryRepository attendanceEntryRepository;
 	private final AttendanceComponent attendanceComponent;
+	
+	@Autowired
+	ClassEntryRepository classEntryRepository;
 
 	public BeadleComponent(BeadleRepository beadleRepository, ClassRepository classRepository,
 			StudentRepository studentRepository, AttendanceEntryRepository attendanceEntryRepository,
@@ -35,6 +41,19 @@ public class BeadleComponent {
 		this.attendanceComponent = attendanceComponent;
 	}
 
+	public int addClassList(app.entities.Class classObj, List<Long> presentStudentIds) {
+		
+		int numStudents = 0;
+		for (Long studentID : presentStudentIds) {
+			Optional<Student> studentOpt = studentRepository.findById(studentID);
+			ClassEntry entry = new ClassEntry(classObj, studentOpt.get(), 0);
+			classEntryRepository.save(entry);
+			numStudents += 1;
+		}
+		
+		return numStudents;
+		
+	}
 	/**
 	 * Records present students and returns attendancePK
 	 * @param beadleId The beadle's primary key

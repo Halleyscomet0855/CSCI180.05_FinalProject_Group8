@@ -1,11 +1,14 @@
 package app.components;
 
 import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import app.entities.Attendance;
@@ -15,6 +18,7 @@ import app.entities.Class;
 import app.entities.Student;
 import app.repositories.AttendanceEntryRepository;
 import app.repositories.AttendanceRepository;
+import app.repositories.ClassRepository;
 
 @Component
 public class AttendanceComponent {
@@ -22,10 +26,24 @@ public class AttendanceComponent {
 	private final AttendanceRepository attendanceRepository;
 	private final AttendanceEntryRepository attendanceEntryRepository;
 
+	@Autowired
+	ClassRepository classRepository;
+
 	public AttendanceComponent(AttendanceRepository attendanceRepository,
 			AttendanceEntryRepository attendanceEntryRepository) {
 		this.attendanceRepository = attendanceRepository;
 		this.attendanceEntryRepository = attendanceEntryRepository;
+	}
+	
+	public Long createClass(Beadle beadle, String profName, String time, String className) {
+		Class newClass = new Class();
+		newClass.setBeadlePk(beadle);
+		newClass.setProfessorName(profName);
+		newClass.setClassName(className);
+		newClass.setTime(time);
+		
+		newClass = classRepository.save(newClass);
+		return newClass.getClassPk();
 	}
 
 	/**

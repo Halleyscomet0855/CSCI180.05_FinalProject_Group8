@@ -16,5 +16,7 @@ public interface ClassRepository extends JpaRepository<Class, Long>{
 
 	@Query("SELECT c FROM Class c WHERE c.Time > :currentTime AND c.Time <= :tenMinutesLater")
 	public List<Class> findUpcomingClasses(@Param("currentTime") Timestamp currentTime, @Param("tenMinutesLater") Timestamp tenMinutesLater);
+	
+	public app.entities.Class findByClassPk(Long PK);
 
 }
