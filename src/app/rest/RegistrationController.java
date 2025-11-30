@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import app.components.StudentComponent;
 import app.entities.Beadle;
+import app.entities.ClassEntry;
 import app.entities.Student;
 import app.repositories.BeadleRepository;
 
@@ -81,6 +82,46 @@ public class RegistrationController {
 		} catch (NumberFormatException e) {
 			return Response.status(Response.Status.BAD_REQUEST)
 				.entity(createErrorResponse("Invalid student ID format"))
+				.build();
+		} catch (Exception e) {
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+				.entity(createErrorResponse("Server error: " + e.getMessage()))
+				.build();
+		}
+	}
+
+	/**
+	 * Register a student to a class.
+	 * POST /register/class
+	 * Input: { studentId, classId }
+	 * Output: { "status": "success", "message": "Student registered to class", "classEntry": {...} }
+	 * Error: 400 Bad Request, 404 Not Found
+	 */
+	@POST
+	@Path("/class")
+	public Response registerStudentToClass(Map<String, Long> request) {
+		try {
+			Long studentId = request.get("studentId");
+			Long classId = request.get("classId");
+
+			if (studentId == null || classId == null) {
+				return Response.status(Response.Status.BAD_REQUEST)
+					.entity(createErrorResponse("Missing required parameters: studentId, classId"))
+					.build();
+			}
+
+			ClassEntry classEntry = studentComponent.addStudentToClass(studentId, classId);
+
+			Map<String, Object> response = new HashMap<>();
+			response.put("status", "success");
+			response.put("message", "Student registered to class");
+			response.put("classEntry", classEntry);
+
+			return Response.ok(response).build();
+
+		} catch (IllegalArgumentException e) {
+			return Response.status(Response.Status.NOT_FOUND)
+				.entity(createErrorResponse(e.getMessage()))
 				.build();
 		} catch (Exception e) {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR)

@@ -8,8 +8,11 @@ import org.springframework.stereotype.Component;
 
 import app.entities.Attendance;
 import app.entities.Class;
+import app.entities.ClassEntry;
+import app.entities.Student;
 import app.repositories.AttendanceEntryRepository;
 import app.repositories.AttendanceRepository;
+import app.repositories.ClassEntryRepository;
 import app.repositories.ClassRepository;
 
 @Component
@@ -18,15 +21,18 @@ public class SchedulerComponent {
 	private final ClassRepository classRepository;
 	private final AttendanceRepository attendanceRepository;
 	private final AttendanceEntryRepository attendanceEntryRepository;
+	private final ClassEntryRepository classEntryRepository;
 	private final MessagingComponent messagingComponent;
 
 	public SchedulerComponent(ClassRepository classRepository,
 			AttendanceRepository attendanceRepository,
 			AttendanceEntryRepository attendanceEntryRepository,
+			ClassEntryRepository classEntryRepository,
 			MessagingComponent messagingComponent) {
 		this.classRepository = classRepository;
 		this.attendanceRepository = attendanceRepository;
 		this.attendanceEntryRepository = attendanceEntryRepository;
+		this.classEntryRepository = classEntryRepository;
 		this.messagingComponent = messagingComponent;
 	}
 
@@ -46,8 +52,8 @@ public class SchedulerComponent {
 	}
 
 	/**
-	 * Hands off class details to the Messaging Component to send reminders
-	 * @param classEntity The class for which to send reminders
+	 * Queues SMS reminders for all students enrolled in a class.
+	 * @param classEntity The class for which to send reminders.
 	 */
 	public void sendClassReminder(Class classEntity) {
 		if (classEntity == null) {
@@ -55,17 +61,21 @@ public class SchedulerComponent {
 		}
 
 		// Find all students enrolled in this class
-		// This would require a join table or enrollment entity in a real implementation
-		// For now, we'll trigger the messaging component with class details
+		List<ClassEntry> classEntries = classEntryRepository.findByClassPK(classEntity);
 
 		String classDetails = "Reminder: " + classEntity.getClassName() +
 			" with Professor " + classEntity.getProfessorName() +
 			" starts at " + classEntity.getTime();
 
-		// In a real implementation, you would query enrolled students and send to each
-		// messagingComponent.queueMessage(studentPhone, classDetails);
+		// Queue a reminder for each enrolled student
+		for (ClassEntry entry : classEntries) {
+			Student student = entry.getStudentPK();
+			if (student != null && student.getPhoneNumber() != null) {
+				messagingComponent.queueMessage(student.getPhoneNumber(), classDetails);
+			}
+		}
 
-		System.out.println("Sending class reminder: " + classDetails);
+		System.out.println("Queued reminders for class: " + classEntity.getClassName());
 	}
 
 	/**

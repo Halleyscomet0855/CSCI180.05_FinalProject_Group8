@@ -2,18 +2,28 @@ package app.components;
 
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import app.entities.Class;
+import app.entities.ClassEntry;
+import app.entities.ClassEntryPK;
 import app.entities.Student;
+import app.repositories.ClassEntryRepository;
+import app.repositories.ClassRepository;
 import app.repositories.StudentRepository;
 
 @Component
 public class StudentComponent {
 
 	private final StudentRepository studentRepository;
+	private final ClassRepository classRepository;
+	private final ClassEntryRepository classEntryRepository;
 
-	public StudentComponent(StudentRepository studentRepository) {
+	public StudentComponent(StudentRepository studentRepository, ClassRepository classRepository, ClassEntryRepository classEntryRepository) {
 		this.studentRepository = studentRepository;
+		this.classRepository = classRepository;
+		this.classEntryRepository = classEntryRepository;
 	}
 
 	/**
@@ -30,6 +40,37 @@ public class StudentComponent {
 		student.setPhoneNumber(phoneNumber);
 
 		return studentRepository.save(student);
+	}
+
+	/**
+	 * Adds a student to a class schedule.
+	 * @param studentId The student's primary key.
+	 * @param classId The class's primary key.
+	 * @return The created or updated ClassEntry.
+	 * @throws IllegalArgumentException if student or class is not found.
+	 */
+	public ClassEntry addStudentToClass(Long studentId, Long classId) {
+		Optional<Student> studentOpt = studentRepository.findById(studentId);
+		if (!studentOpt.isPresent()) {
+			throw new IllegalArgumentException("Student not found with ID: " + studentId);
+		}
+		Student student = studentOpt.get();
+
+		Optional<Class> classOpt = classRepository.findById(classId);
+		if (!classOpt.isPresent()) {
+			throw new IllegalArgumentException("Class not found with ID: " + classId);
+		}
+		Class classEntity = classOpt.get();
+
+		ClassEntryPK pk = new ClassEntryPK(studentId, classId);
+		Optional<ClassEntry> existingClassEntry = Optional.ofNullable(classEntryRepository.findByClassEntryPK(pk));
+
+		if (existingClassEntry.isPresent()) {
+			return existingClassEntry.get(); // Student already in class, return existing entry
+		} else {
+			ClassEntry newClassEntry = new ClassEntry(classEntity, student, 0);
+			return classEntryRepository.save(newClassEntry);
+		}
 	}
 
 	/**

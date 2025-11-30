@@ -1,121 +1,79 @@
 package app.components;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import app.entities.Attendance;
-import app.entities.AttendanceEntry;
 import app.entities.Class;
+import app.entities.ClassEntry;
 import app.entities.Student;
-import app.repositories.AttendanceEntryRepository;
-import app.repositories.AttendanceRepository;
+import app.repositories.ClassEntryRepository;
 import app.repositories.ClassRepository;
 
 @Component
 public class ProfessorComponent {
 
-	private final AttendanceRepository attendanceRepository;
-	private final AttendanceEntryRepository attendanceEntryRepository;
-	private final ClassRepository classRepository;
-	private final AttendanceComponent attendanceComponent;
+    private final ClassRepository classRepository;
+    private final ClassEntryRepository classEntryRepository;
 
-	public ProfessorComponent(AttendanceRepository attendanceRepository,
-			AttendanceEntryRepository attendanceEntryRepository,
-			ClassRepository classRepository,
-			AttendanceComponent attendanceComponent) {
-		this.attendanceRepository = attendanceRepository;
-		this.attendanceEntryRepository = attendanceEntryRepository;
-		this.classRepository = classRepository;
-		this.attendanceComponent = attendanceComponent;
-	}
+    // Define a threshold for "cutting" class
+    private static final int CUT_THRESHOLD = 3; 
 
-	/**
-	 * Displays logged attendance after class
-	 * @param attendanceId The attendance record primary key
-	 * @return Formatted string with attendance details
-	 */
-	public String viewAttendance(Long attendanceId) {
-		Optional<Attendance> attendanceOpt = attendanceRepository.findById(attendanceId);
+    @Autowired
+    public ProfessorComponent(ClassRepository classRepository, ClassEntryRepository classEntryRepository) {
+        this.classRepository = classRepository;
+        this.classEntryRepository = classEntryRepository;
+    }
 
-		if (!attendanceOpt.isPresent()) {
-			return "Attendance record not found.";
-		}
+    /**
+     * Generates a report of students who have "cut" (accumulated too many lates) a specific class.
+     * @param classId The primary key of the class.
+     * @return A formatted string report of students who have cut the class.
+     * @throws IllegalArgumentException if the class is not found.
+     */
+    public String generateCutReport(Long classId) {
+        Optional<Class> classOpt = classRepository.findById(classId);
+        if (!classOpt.isPresent()) {
+            throw new IllegalArgumentException("Class not found with ID: " + classId);
+        }
+        Class classEntity = classOpt.get();
 
-		Attendance attendance = attendanceOpt.get();
+        // Find all ClassEntry objects for this class
+        List<ClassEntry> classEntries = classEntryRepository.findByClassPK(classEntity);
 
-		StringBuilder view = new StringBuilder();
-		view.append("=== Attendance Report ===\n");
-		view.append("Class: ").append(attendance.getClassPk().getClassName()).append("\n");
-		view.append("Professor: ").append(attendance.getClassPk().getProfessorName()).append("\n");
-		view.append("Date: ").append(attendance.getDate()).append("\n");
-		view.append("Beadle: ").append(attendance.getBeadlePk().getName()).append("\n\n");
+        // Filter students who have exceeded the cut threshold for lates
+        List<Student> studentsWhoCut = classEntries.stream()
+            .filter(entry -> entry.getNumberOfLate() >= CUT_THRESHOLD)
+            .map(ClassEntry::getStudentPK)
+            .collect(Collectors.toList());
 
-		// Get list of present students
-		List<Student> presentStudents = attendanceComponent.getListOfPresentStudents(attendanceId);
+        // Build the report string
+        StringBuilder report = new StringBuilder();
+        report.append("Cut Report for Class: ").append(classEntity.getClassName()).append("\n");
+        report.append("Professor: ").append(classEntity.getProfessorName()).append("\n");
+        report.append("---------------------------------------\n");
 
-		view.append("Students Present (").append(presentStudents.size()).append("):\n");
-		for (Student student : presentStudents) {
-			view.append("  - ").append(student.getName())
-				.append(" (ID: ").append(student.getIDNumber()).append(")\n");
-		}
-
-		// Get list of absent students using repository
-		List<AttendanceEntry> absentEntries = attendanceEntryRepository.findByAttendancePKAndAttendanceStatus(attendance, "Absent");
-
-		view.append("\nStudents Absent (").append(absentEntries.size()).append("):\n");
-		for (AttendanceEntry entry : absentEntries) {
-			Student student = entry.getStudentPK();
-			view.append("  - ").append(student.getName())
-				.append(" (ID: ").append(student.getIDNumber())
-				.append(") - Status: ").append(entry.getAttendanceStatus()).append("\n");
-		}
-
-		return view.toString();
-	}
-
-	/**
-	 * Identifies students who cut (were absent from) a class
-	 * @param classId The class primary key
-	 * @return Map of student names to their cut counts
-	 */
-	public Map<String, Integer> generateCutReport(Long classId) {
-		Optional<Class> classOpt = classRepository.findById(classId);
-
-		if (!classOpt.isPresent()) {
-			System.out.println("Class not found with ID: " + classId);
-			return new HashMap<>();
-		}
-
-		Class classEntity = classOpt.get();
-
-		// Get all attendance records for this class using repository
-		List<Attendance> attendanceRecords = attendanceRepository.findByClassPk(classEntity);
-
-		Map<String, Integer> cutReport = new HashMap<>();
-
-		// For each attendance record, find students who were absent
-		for (Attendance attendance : attendanceRecords) {
-			// Get absent entries using repository (any status that is not "Present")
-			List<AttendanceEntry> allEntries = attendanceEntryRepository.findByAttendancePK(attendance);
-
-			// Count cuts for each student who was not present
-			for (AttendanceEntry entry : allEntries) {
-				if ("Present".equals(entry.getAttendanceStatus())) {
-					Student student = entry.getStudentPK();
-					String studentName = student.getName() + " (ID: " + student.getIDNumber() + ")";
-					cutReport.put(studentName, cutReport.getOrDefault(studentName, 0) + 1);
-				}
-			}
-		}
-
-		System.out.println("Cut Report generated for class: " + classEntity.getClassName());
-		System.out.println("Total sessions: " + attendanceRecords.size());
-		System.out.println("Students with cuts: " + cutReport.size());
-
-		return cutReport;
-	}
+        if (studentsWhoCut.isEmpty()) {
+            report.append("No students have cut this class.\n");
+        } else {
+            report.append("Students who have cut this class (").append(CUT_THRESHOLD).append(" or more lates):\n");
+            for (Student student : studentsWhoCut) {
+                // Find the specific ClassEntry to get the exact late count for the student in this class
+                Optional<ClassEntry> studentClassEntry = classEntries.stream()
+                    .filter(entry -> entry.getStudentPK().equals(student))
+                    .findFirst();
+                
+                String lateCountInfo = studentClassEntry.map(entry -> "(" + entry.getNumberOfLate() + " lates)").orElse("");
+                report.append("- ").append(student.getName()).append(" (ID: ").append(student.getIDNumber()).append(") ").append(lateCountInfo).append("\n");
+            }
+        }
+        report.append("---------------------------------------\n");
+        
+        return report.toString();
+    }
+    
+    // You can add more Professor-specific methods here, e.g., viewAttendance()
 }

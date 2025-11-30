@@ -2,6 +2,7 @@ package app.components;
 
 import java.sql.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import app.entities.AttendanceEntry;
 import app.entities.Beadle;
 import app.entities.Class;
 import app.entities.ClassEntry;
+import app.entities.ClassEntryPK;
 import app.entities.Student;
 import app.repositories.AttendanceEntryRepository;
 import app.repositories.BeadleRepository;
@@ -54,15 +56,29 @@ public class BeadleComponent {
 		return numStudents;
 		
 	}
+	
+	public ClassEntry incrementLateCount(Long studentId, Long classId) {
+		ClassEntryPK pk = new ClassEntryPK(studentId, classId);
+		Optional<ClassEntry> classEntryOpt = Optional.ofNullable(classEntryRepository.findByClassEntryPK(pk));
+		
+		if(classEntryOpt.isPresent()) {
+			ClassEntry classEntry = classEntryOpt.get();
+			classEntry.setNumberOfLate(classEntry.getNumberOfLate() + 1);
+			return classEntryRepository.save(classEntry);
+		}
+		else {
+			throw new IllegalArgumentException("Student not found in this class");
+		}
+	}
 	/**
-	 * Records present students and returns attendancePK
-	 * @param beadleId The beadle's primary key
-	 * @param classId The class primary key
-	 * @param presentStudentIds List of student IDs who are present
-	 * @param date The date of the class session
-	 * @return The primary key of the created attendance record
+	 * Records attendance for students with various statuses (Present, Late, Absent).
+	 * @param beadleId The beadle's primary key.
+	 * @param classId The class primary key.
+	 * @param attendanceStatus A map of student IDs to their attendance status.
+	 * @param date The date of the class session.
+	 * @return The primary key of the created attendance record.
 	 */
-	public Long logAttendance(Long beadleId, Long classId, List<Long> presentStudentIds, Date date) {
+	public Long logAttendance(Long beadleId, Long classId, Map<Long, String> attendanceStatus, Date date) {
 		// Find the beadle using repository
 		Optional<Beadle> beadleOpt = beadleRepository.findById(beadleId);
 		if (!beadleOpt.isPresent()) {
@@ -80,20 +96,27 @@ public class BeadleComponent {
 		// Create the attendance record using AttendanceComponent
 		Attendance attendance = attendanceComponent.createAttendanceRecord(beadle, classEntity, date);
 
-		// Record each present student
-		for (Long studentId : presentStudentIds) {
+		// Record each student's attendance status
+		for (Map.Entry<Long, String> entry : attendanceStatus.entrySet()) {
+			Long studentId = entry.getKey();
+			String status = entry.getValue();
+
 			Optional<Student> studentOpt = studentRepository.findById(studentId);
 			if (studentOpt.isPresent()) {
-				// Create attendance entry for present student
-				AttendanceEntry entry = new AttendanceEntry(studentOpt.get(), attendance, "Present");
-				attendanceEntryRepository.save(entry);
+				// Create attendance entry for the student with the given status
+				AttendanceEntry attendanceEntry = new AttendanceEntry(studentOpt.get(), attendance, status);
+				attendanceEntryRepository.save(attendanceEntry);
+
+				// If the student is late, increment their late count
+				if ("Late".equalsIgnoreCase(status)) {
+					incrementLateCount(studentId, classId);
+				}
 			}
 		}
 
 		System.out.println("Attendance logged by beadle " + beadle.getName() +
 			" for class " + classEntity.getClassName() +
-			" on " + date +
-			". Students present: " + presentStudentIds.size());
+			" on " + date);
 
 		return attendance.getAttendancePk();
 	}

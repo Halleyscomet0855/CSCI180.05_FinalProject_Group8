@@ -3,16 +3,41 @@ package app.components;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import javax.annotation.PostConstruct;
+
 import org.springframework.stereotype.Component;
+
+import com.twilio.Twilio;
+import com.twilio.rest.api.v2010.account.Message;
+import com.twilio.type.PhoneNumber;
 
 /**
  * Component for handling messaging operations via Twilio SMS
+ * 
+ * NOTE: This component requires the Twilio Java helper library.
+ * Add it to your project's dependencies.
+ * For Maven, add to pom.xml:
+ * <dependency>
+ *     <groupId>com.twilio.sdk</groupId>
+ *     <artifactId>twilio</artifactId>
+ *     <version>8.27.0</version> <!-- Use the latest version -->
+ * </dependency>
  */
 @Component
 public class MessagingComponent {
 
+	// TODO: Replace with your actual Twilio credentials from a secure configuration
+	private static final String ACCOUNT_SID = "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+	private static final String AUTH_TOKEN = "your_auth_token";
+	private static final String TWILIO_PHONE_NUMBER = "+15017122661";
+
 	// Message queue for storing pending messages
 	private Queue<MessageQueueItem> messageQueue = new LinkedList<>();
+
+	@PostConstruct
+	public void init() {
+		Twilio.init(ACCOUNT_SID, AUTH_TOKEN);
+	}
 
 	/**
 	 * Inner class to represent a queued message
@@ -72,22 +97,7 @@ public class MessagingComponent {
 
 		while (!messageQueue.isEmpty()) {
 			MessageQueueItem item = messageQueue.poll();
-
-			// TODO: Integrate with Twilio API
-			// This is where you would add Twilio SDK code to actually send the SMS
-			// Example:
-			// Message message = Message.creator(
-			//     new PhoneNumber(item.getPhoneNumber()),
-			//     new PhoneNumber("YOUR_TWILIO_NUMBER"),
-			//     item.getMessage()
-			// ).create();
-
-			// For now, we'll simulate sending
-			System.out.println("=== Sending SMS ===");
-			System.out.println("To: " + item.getPhoneNumber());
-			System.out.println("Message: " + item.getMessage());
-			System.out.println("Status: Sent successfully (simulated)");
-			System.out.println("===================");
+			sendImmediateSMS(item.getPhoneNumber(), item.getMessage());
 		}
 
 		System.out.println("All messages sent.");
@@ -105,16 +115,24 @@ public class MessagingComponent {
 			return false;
 		}
 
-		// TODO: Integrate with Twilio API
-		// This is where you would add Twilio SDK code to actually send the SMS
+		try {
+			Message twilioMessage = Message.creator(
+				new PhoneNumber(phoneNumber),
+				new PhoneNumber(TWILIO_PHONE_NUMBER),
+				message
+			).create();
 
-		System.out.println("=== Sending Immediate SMS ===");
-		System.out.println("To: " + phoneNumber);
-		System.out.println("Message: " + message);
-		System.out.println("Status: Sent successfully (simulated)");
-		System.out.println("=============================");
+			System.out.println("=== Sending Immediate SMS ===");
+			System.out.println("To: " + phoneNumber);
+			System.out.println("Message: " + message);
+			System.out.println("Status: Sent successfully with SID: " + twilioMessage.getSid());
+			System.out.println("=============================");
+			return true;
 
-		return true;
+		} catch (Exception e) {
+			System.err.println("Error sending SMS to " + phoneNumber + ": " + e.getMessage());
+			return false;
+		}
 	}
 
 	/**

@@ -72,17 +72,19 @@ public class AttendanceController {
 			// Check if this is a beadle logging attendance for multiple students
 			if (attendanceData.containsKey("beadleId") &&
 				attendanceData.containsKey("classId") &&
-				attendanceData.containsKey("presentStudentIds")) {
+				attendanceData.containsKey("attendanceStatus")) {
 
 				Long beadleId = Long.valueOf(attendanceData.get("beadleId").toString());
 				Long classId = Long.valueOf(attendanceData.get("classId").toString());
 
-				// Parse student IDs
-				List<Long> presentStudentIds = new ArrayList<>();
-				Object studentIdsObj = attendanceData.get("presentStudentIds");
-				if (studentIdsObj instanceof List) {
-					for (Object id : (List<?>) studentIdsObj) {
-						presentStudentIds.add(Long.valueOf(id.toString()));
+				// Parse attendance status map
+				Map<Long, String> attendanceStatus = new HashMap<>();
+				Object statusObj = attendanceData.get("attendanceStatus");
+				if (statusObj instanceof Map) {
+					for (Map.Entry<?, ?> entry : ((Map<?, ?>) statusObj).entrySet()) {
+						Long studentId = Long.valueOf(entry.getKey().toString());
+						String status = entry.getValue().toString();
+						attendanceStatus.put(studentId, status);
 					}
 				}
 
@@ -92,7 +94,7 @@ public class AttendanceController {
 					new Date(System.currentTimeMillis());
 
 				// Log attendance via BeadleComponent
-				Long attendancePk = beadleComponent.logAttendance(beadleId, classId, presentStudentIds, date);
+				Long attendancePk = beadleComponent.logAttendance(beadleId, classId, attendanceStatus, date);
 
 				Map<String, Object> response = new HashMap<>();
 				response.put("status", "success");
